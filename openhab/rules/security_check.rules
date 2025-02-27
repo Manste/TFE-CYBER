@@ -1,0 +1,22 @@
+rule "Check if unauthorized person performed crucial action"
+when
+    Item DetectedPerson changed or
+    Item DetectedAction changed
+then
+    val detectedPerson = DetectedPerson.state.toString
+    val detectedAction = DetectedAction.state.toString
+
+    if (detectedPerson != "Unknown") {
+        logInfo("Security", "Detected " + detectedPerson + " performing " + detectedAction)
+
+        // Check if the person is authorized
+        val authorizedPersons = ["Alice", "Bob"]
+        if (authorizedPersons.contains(detectedPerson)) {
+            logInfo("Security", "Action is authorized, no alert needed.")
+        } else {
+            logWarn("Security", "Unauthorized action detected! Sending frame to cloud.")
+            executeCommandLine("python3 /etc/openhab/scripts/comparison.py /tmp/frame.jpg " + detectedPerson + " " + detectedAction)
+            Alert.sendCommand(ON)
+        }
+    }
+end

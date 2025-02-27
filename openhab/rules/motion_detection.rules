@@ -1,0 +1,13 @@
+rule "Start Stream on Motion"
+when
+    Item MotionSensor changed to ON
+then
+    StreamAuthorization.sendCommand(ON)
+end
+
+rule "Stop Stream When No Motion"
+when
+    Item MotionSensor changed to OFF
+then
+    StreamAuthorization.sendCommand(OFF)
+end

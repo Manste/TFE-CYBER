@@ -1,0 +1,9 @@
+Switch MotionSensor "Motion Authorization" 
+Switch StreamAuthorization "Stream Authorization" 
+Switch FaceRecognitionAccess "Face Recognition Access"
+Switch ActionRecognitionAccess "Action Recognition Access"
+
+String DetectedPerson "Detected Person [%s]" 
+String DetectedAction "Detected Action [%s]"
+
+Switch Alert "Security Alert"

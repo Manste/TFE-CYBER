@@ -1,0 +1,20 @@
+rule "Authorize ESP32-CAM Stream"
+when
+    Item StreamAuthorization changed to ON
+then
+    executeCommandLine("python3 /etc/openhab/scripts/websocket_retriever.py &")
+end
+
+rule "Ensure Face Recognition Has Access"
+when
+    Item FaceRecognitionAccess changed to ON
+then
+    executeCommandLine("cp /etc/openhab/models/face_model.pth /tmp/ && cp /etc/openhab/authorized_faces/* /tmp/")
+end
+
+rule "Ensure Action Recognition Has Access"
+when
+    Item ActionRecognitionAccess changed to ON
+then
+    executeCommandLine("cp /etc/openhab/models/action_model.pth /tmp/")
+end
