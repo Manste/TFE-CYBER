@@ -30,7 +30,7 @@ def detect_action(frame):
         predicted_labels_probability = round(predicted_labels_probabilities[predicted_label] * 100, 2)
         if predicted_labels_probability >= 80:
             return predicted_class_name
-    return "None"
+    return "Unknown"
 
 def on_message(ws, message):
     """Process received frame"""

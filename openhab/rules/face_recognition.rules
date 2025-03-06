@@ -2,5 +2,5 @@ rule "Run Face Recognition"
 when
     Item StreamAuthorization changed to ON
 then
-    executeCommandLine("python3 /etc/openhab/scripts/face_recognition.py /tmp/frame.jpg")
+    executeCommandLine("python3 /etc/openhab/scripts/face_recognition.py")
 end

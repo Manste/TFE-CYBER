@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"  # Mapping host port 27017 to container port 27017
+    volumes:
+      - mongo-data:/data/db  # Persistent storage
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root  # MongoDB root username
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword  # MongoDB root password
+    restart: always
+
+volumes:
+  mongo-data:  # Define a named volume for persistent storage

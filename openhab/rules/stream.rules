@@ -7,6 +7,8 @@ then
         logInfo("WebSocket", "Streaming Authorized!")
     } else {
         executeCommandLine("pkill -f /etc/openhab/scripts/websocket_relay_server.py")
+        executeCommandLine("pkill -f /etc/openhab/scripts/action_recognition.py")
+        executeCommandLine("pkill -f /etc/openhab/scripts/face_recognition.py")
         logInfo("WebSocket", "Streaming Stopped!")
     }
 end

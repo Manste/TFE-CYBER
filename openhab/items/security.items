@@ -1,9 +1,13 @@
-// Authorization control
-Switch StreamAuthorization "Stream Authorization" <switch>
+// Motion Sensor (Receives MQTT message)
+Switch MotionDetected "Motion Detected" {channel="mqtt:topic:localhost:motion_sensor"}
 
-// AI Detection Results
-String RecognizedPerson "Recognized Person [%s]" <person>
-String DetectedAction "Detected Action [%s]" <motion>
+// Control AI Scripts
+Switch StartFaceRecognition "Start Face Recognition"
+Switch StartActionRecognition "Start Action Recognition"
 
-// Alert Trigger
-Switch AlertTriggered "Alert Triggered!" <alarm>
+// Results from AI scripts
+String RecognizedPerson "Recognized Person [%s]"
+String DetectedAction "Detected Action [%s]"
+
+// Alert if unauthorized action happens
+Switch AlertTriggered "Alert Triggered!"

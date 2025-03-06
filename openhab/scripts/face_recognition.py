@@ -5,12 +5,14 @@ import numpy as np
 from mtcnn.mtcnn import MTCNN
 from keras_facenet import FaceNet
 import requests
+import json
 
 embedder = FaceNet()
 detector = MTCNN()
 
 # OpenHAB API URL
-OPENHAB_ITEM = "http://localhost:8080/rest/items/RecognizedPerson"
+OPENHAB_PERSON_ITEM = "http://localhost:8080/rest/items/RecognizedPerson"
+OPENHAB_IMAGE_ITEM = "http://localhost:8080/rest/items/PersonImage"
 
 # Load the SVC model
 loaded_svc_model = joblib.load('models/svc_model.pkl')
@@ -47,19 +49,40 @@ def recognize_face(frame):
         is_known = loaded_one_class_svm.predict([embedding])[0]  # 1 = known, -1 = unknown
 
         if pred_prob >= 80 or is_known != -1:
-            persons.append(person_ids.get(pred_label, 'Unknown'))
+            persons.append((person_ids.get(pred_label, 'Unknown'), frame))
+        if is_known:
+            persons.append(('Unknown', frame))
     
     return persons
-        
+
+def save_images(faces):
+    image_paths = {}
+    for name, face_frame in faces:
+        img_path = f"/tmp/{name}.jpg"
+        cv2.imwrite(img_path, face_frame)
+        image_paths[name] = img_path
+    return image_paths
+
+def send_to_openhab(person_list, image_paths):
+    # Send recognized persons list
+    persons_json = json.dumps(person_list)
+    requests.post(OPENHAB_PERSON_ITEM, data=persons_json, headers={"Content-Type": "text/plain"})
+
+    # Send image paths (also in JSON format)
+    images_json = json.dumps(image_paths)
+    requests.post(OPENHAB_IMAGE_ITEM, data=images_json, headers={"Content-Type": "text/plain"})
 
 def on_message(ws, message):
     """Process received frame"""
     np_frame = np.frombuffer(message, dtype=np.uint8)
     frame = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
-    persons = recognize_face(frame)
-    #print(persons)
+    recognized_faces = recognize_face(frame)
+    #print(recognized_faces)
     # Send result to OpenHAB
-    requests.post(OPENHAB_ITEM, data=persons, headers={"Content-Type": "text/plain"})
+    if recognized_faces:
+        persons = [name for name, _ in recognized_faces]
+        images = save_images(recognized_faces)
+        send_to_openhab(persons, images)
 
 # Connect to WebSocket Relay Server
 ws = websocket.WebSocketApp("ws://localhost:8765", on_message=on_message)
