@@ -5,7 +5,7 @@ import json
 import os
 
 # Cloud API endpoint
-CLOUD_API_URL = "https://172.20.10.7:/upload"
+CLOUD_API_URL = "https://172.20.10.7:3001/upload"
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
 HASHING_KEY = os.getenv('HASHING_KEY')
 
