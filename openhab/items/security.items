@@ -1,9 +1,9 @@
-Switch MotionSensor "Motion Authorization" 
-Switch StreamAuthorization "Stream Authorization" 
-Switch FaceRecognitionAccess "Face Recognition Access"
-Switch ActionRecognitionAccess "Action Recognition Access"
+// Authorization control
+Switch StreamAuthorization "Stream Authorization" <switch>
 
-String DetectedPerson "Detected Person [%s]" 
-String DetectedAction "Detected Action [%s]"
+// AI Detection Results
+String RecognizedPerson "Recognized Person [%s]" <person>
+String DetectedAction "Detected Action [%s]" <motion>
 
-Switch Alert "Security Alert"
+// Alert Trigger
+Switch AlertTriggered "Alert Triggered!" <alarm>

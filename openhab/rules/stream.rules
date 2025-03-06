@@ -1,20 +1,12 @@
-rule "Authorize ESP32-CAM Stream"
+rule "Authorize Frame Reception"
 when
-    Item StreamAuthorization changed to ON
+    Item StreamAuthorization changed
 then
-    executeCommandLine("python3 /etc/openhab/scripts/websocket_retriever.py &")
-end
-
-rule "Ensure Face Recognition Has Access"
-when
-    Item FaceRecognitionAccess changed to ON
-then
-    executeCommandLine("cp /etc/openhab/models/face_model.pth /tmp/ && cp /etc/openhab/authorized_faces/* /tmp/")
-end
-
-rule "Ensure Action Recognition Has Access"
-when
-    Item ActionRecognitionAccess changed to ON
-then
-    executeCommandLine("cp /etc/openhab/models/action_model.pth /tmp/")
+    if (StreamAuthorization.state == ON) {
+        executeCommandLine("python3 /etc/openhab/scripts/websocket_relay_server.py &")
+        logInfo("WebSocket", "Streaming Authorized!")
+    } else {
+        executeCommandLine("pkill -f /etc/openhab/scripts/websocket_relay_server.py")
+        logInfo("WebSocket", "Streaming Stopped!")
+    }
 end

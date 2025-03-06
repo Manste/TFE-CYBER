@@ -2,5 +2,5 @@ rule "Run Action Recognition"
 when
     Item StreamAuthorization changed to ON
 then
-    executeCommandLine("python3 /etc/openhab/scripts/action_recognition.py /tmp/frames/")
+    executeCommandLine("python3 /etc/openhab/scripts/action_recognition.py")
 end
