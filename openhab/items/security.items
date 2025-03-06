@@ -2,6 +2,7 @@
 Switch MotionDetected "Motion Detected" {channel="mqtt:topic:localhost:motion_sensor"}
 
 // Control AI Scripts
+Switch StreamAuthorization "Start WebSocket relay server"
 Switch StartFaceRecognition "Start Face Recognition"
 Switch StartActionRecognition "Start Action Recognition"
 
