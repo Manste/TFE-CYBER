@@ -1,6 +1,12 @@
 rule "Run Action Recognition"
 when
-    Item StreamAuthorization changed to ON
+    Item StartActionRecognition received command
 then
-    executeCommandLine("python3 /etc/openhab/scripts/action_recognition.py")
+    if (receivedCommand == ON) {
+        executeCommandLine("python3", "/etc/openhab/scripts/action_recognition.py", "&")
+        logInfo("StartActionRecognition", "Action recognition authorized!")
+    } else {
+        executeCommandLine("pkill", "-f", "/etc/openhab/scripts/action_recognition.py")
+        logInfo("StartActionRecognition", "Action recognition stopped!")
+    }
 end

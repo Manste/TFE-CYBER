@@ -1,14 +1,17 @@
-rule "Authorize Frame Reception"
+rule "Run the websocket relay server and the instrusion system"
 when
-    Item StreamAuthorization changed
+    Item StreamAuthorization received command
 then
-    if (StreamAuthorization.state == ON) {
-        executeCommandLine("python3 /etc/openhab/scripts/websocket_relay_server.py &")
-        logInfo("WebSocket", "Streaming Authorized!")
+    if (receivedCommand == ON) {
+        executeCommandLine("python3", "/etc/openhab/scripts/websocket_relay_server.py", "&")
+        //executeCommandLine("python3", "/etc/openhab/scripts/test.py", "&")
+        logInfo("StreamAuthorization", "Websocket relay server activated!")
+        sendCommand(StartFaceRecognition, ON)
+        sendCommand(StartActionRecognition, ON)
     } else {
-        executeCommandLine("pkill -f /etc/openhab/scripts/websocket_relay_server.py")
-        executeCommandLine("pkill -f /etc/openhab/scripts/action_recognition.py")
-        executeCommandLine("pkill -f /etc/openhab/scripts/face_recognition.py")
-        logInfo("WebSocket", "Streaming Stopped!")
+        executeCommandLine("pkill", "-f", "/etc/openhab/scripts/websocket_relay_server.py")
+        logInfo("StreamAuthorization", "Websocket relay server activated!")
+        sendCommand(StartFaceRecognition, OFF)
+        sendCommand(StartActionRecognition, OFF)
     }
 end

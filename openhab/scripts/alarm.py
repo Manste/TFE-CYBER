@@ -3,14 +3,24 @@ import sys
 import requests
 import json
 import os
+import logging
+
+# Configure logging to a file
+logging.basicConfig(filename="/tmp/alarm_script.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+
+logging.info("Alarm script started!")
 
 # Cloud API endpoint
-CLOUD_API_URL = "https://172.20.10.7:3001/upload"
+CLOUD_API_URL = "http://localhost:5000/api/alarm"
+
+load_dotenv()
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
 HASHING_KEY = os.getenv('HASHING_KEY')
 
-def send_alert(person_name, image_path):
+
+def send_alert(person_name):
     """Sends an alert with the person's image & name to the cloud."""
+    image_path = f"/tmp/{person_name}.jpg"
     if not os.path.exists(image_path):
         print(f"Error: Image file '{image_path}' not found!")
         return
@@ -29,10 +39,9 @@ def send_alert(person_name, image_path):
             print(f"Error: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python3 alarm.py <person_name> <image_path>")
+    if len(sys.argv) < 2:
+        print("Usage: python3 alarm.py <person_name>")
         sys.exit(1)
 
     person_name = sys.argv[1]
-    image_path = sys.argv[2]
-    send_alert(person_name, image_path)
+    send_alert(person_name)

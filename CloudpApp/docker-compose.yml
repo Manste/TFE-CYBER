@@ -9,9 +9,11 @@ services:
     volumes:
       - mongo-data:/data/db  # Persistent storage
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root  # MongoDB root username
-      MONGO_INITDB_ROOT_PASSWORD: rootpassword  # MongoDB root password
-    restart: always
-
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      #MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE} 
+    #restart: always
+    command: ["mongod", "--auth"]
+    
 volumes:
   mongo-data:  # Define a named volume for persistent storage

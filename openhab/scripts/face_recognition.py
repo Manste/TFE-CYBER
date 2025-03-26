@@ -2,36 +2,55 @@ import websocket
 import cv2
 import joblib
 import numpy as np
+import time
+import json
+import paho.mqtt.client as mqtt
+import threading
 from mtcnn.mtcnn import MTCNN
 from keras_facenet import FaceNet
-import requests
-import json
 
+import os
+import time
+import logging
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+# Configure logging to a file
+logging.basicConfig(filename="face_script.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+
+logging.info("Face recognition script started!")
+
+# MQTT Settings
+MQTT_BROKER = "localhost"
+MQTT_PORT = 1883
+MQTT_TOPIC_FACE_TRIGGER = "openhab/trigger/DetectedPersonEvent"
+
+# Initialize MQTT Client
+mqtt_client = mqtt.Client()
+
+# Initialize models
 embedder = FaceNet()
 detector = MTCNN()
 
-# OpenHAB API URL
-OPENHAB_PERSON_ITEM = "http://localhost:8080/rest/items/RecognizedPerson"
-OPENHAB_IMAGE_ITEM = "http://localhost:8080/rest/items/PersonImage"
+# Load models
+loaded_svc_model = joblib.load('/etc/openhab/scripts/models/svc_model.pkl')
+loaded_one_class_svm = joblib.load('/etc/openhab/scripts/models/one_class_svm_model.pkl')
 
-# Load the SVC model
-loaded_svc_model = joblib.load('models/svc_model.pkl')
-# Load the OneClassSVM model
-loaded_one_class_svm = joblib.load('models/one_class_svm_model.pkl')
-
+# Person ID mapping
 person_ids = {
     1: "Annalise Keating",
     2: "Manuelle"
 }
 
 def get_embedding(model, face_pixels):
-	face_pixels = face_pixels.astype('float32') # 3D (160x160x3)
-	face_img = np.expand_dims(face_pixels, axis=0)
-    # 4D (Nonex160x160x3)
-	embedding = model.embeddings(face_img)
-	return embedding[0] # 512 D image (1x1x512)
+    """Extracts 512D FaceNet embedding from an image."""
+    face_pixels = face_pixels.astype('float32')
+    face_img = np.expand_dims(face_pixels, axis=0)
+    embedding = model.embeddings(face_img)
+    return embedding[0]
 
 def recognize_face(frame):
+    """Detects faces and predicts their identities."""
     img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     faces = detector.detect_faces(img)
     persons = []
@@ -41,21 +60,24 @@ def recognize_face(frame):
         face_img = img[y:y+h, x:x+w]
         face_img = cv2.resize(face_img, (160, 160))
         embedding = get_embedding(embedder, face_img)
+
         # Predict class
         pred_probs = loaded_svc_model.predict_proba([embedding])
         pred_label = loaded_svc_model.predict([embedding])[0]
         pred_prob = np.max(pred_probs)
-        # Outlier detection using One-Class SVM
+
+        # Outlier detection
         is_known = loaded_one_class_svm.predict([embedding])[0]  # 1 = known, -1 = unknown
 
-        if pred_prob >= 80 or is_known != -1:
+        if pred_prob >= 50:
             persons.append((person_ids.get(pred_label, 'Unknown'), frame))
-        if is_known:
+        else:
             persons.append(('Unknown', frame))
-    
+
     return persons
 
 def save_images(faces):
+    """Saves detected faces as images and returns their paths."""
     image_paths = {}
     for name, face_frame in faces:
         img_path = f"/tmp/{name}.jpg"
@@ -63,27 +85,93 @@ def save_images(faces):
         image_paths[name] = img_path
     return image_paths
 
-def send_to_openhab(person_list, image_paths):
-    # Send recognized persons list
-    persons_json = json.dumps(person_list)
-    requests.post(OPENHAB_PERSON_ITEM, data=persons_json, headers={"Content-Type": "text/plain"})
+def send_to_openhab(person_list):
+    """Sends recognized person data to OpenHAB via MQTT."""
+    logging.info(f"Sending to OpenHAB: {person_list}")
+    mqtt_client.publish(MQTT_TOPIC_FACE_TRIGGER, json.dumps(person_list))
 
-    # Send image paths (also in JSON format)
-    images_json = json.dumps(image_paths)
-    requests.post(OPENHAB_IMAGE_ITEM, data=images_json, headers={"Content-Type": "text/plain"})
-
-def on_message(ws, message):
-    """Process received frame"""
+# WebSocket Handlers
+def on_websocket_message(ws, message):
+    """Processes incoming WebSocket messages (image frames)."""
     np_frame = np.frombuffer(message, dtype=np.uint8)
     frame = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
     recognized_faces = recognize_face(frame)
-    #print(recognized_faces)
-    # Send result to OpenHAB
+
     if recognized_faces:
         persons = [name for name, _ in recognized_faces]
-        images = save_images(recognized_faces)
-        send_to_openhab(persons, images)
+        save_images(recognized_faces)
+        send_to_openhab(persons)
+        print(persons)
 
-# Connect to WebSocket Relay Server
-ws = websocket.WebSocketApp("ws://localhost:8765", on_message=on_message)
-ws.run_forever()
+def on_websocket_error(ws, error):
+    """Handles WebSocket errors."""
+    logging.error(f"WebSocket error: {error}")
+
+def on_websocket_close(ws, close_status_code, close_msg):
+    """Handles WebSocket closure and triggers reconnection."""
+    logging.info(f"WebSocket closed. Code: {close_status_code}, Reason: {close_msg}")
+    reconnect_to_websocket()
+
+def on_websocket_open(ws):
+    """Logs successful WebSocket connection."""
+    logging.info("Connected to WebSocket relay server.")
+
+# WebSocket Reconnection Logic
+def reconnect_to_websocket():
+    """Attempts to reconnect with exponential backoff."""
+    delay = 5  # Initial delay in seconds
+    while True:
+        logging.info(f"Trying to reconnect in {delay} seconds...")
+        time.sleep(delay)
+        try:
+            ws = websocket.WebSocketApp(
+                "ws://localhost:8765",
+                on_message=on_websocket_message,
+                on_error=on_websocket_error,
+                on_close=on_websocket_close
+            )
+            ws.on_open = on_websocket_open
+            ws.run_forever()
+            break  # Exit loop once connected
+        except Exception as e:
+            logging.error(f"Reconnection failed: {e}")
+            delay = min(delay * 2, 60)  # Increase delay but cap at 60 sec
+
+def start_websocket_client():
+    """Starts the WebSocket client with automatic reconnection."""
+    while True:
+        try:
+            ws = websocket.WebSocketApp(
+                "ws://localhost:8765",
+                on_message=on_websocket_message,
+                on_error=on_websocket_error,
+                on_close=on_websocket_close
+            )
+            ws.on_open = on_websocket_open
+            ws.run_forever()
+        except Exception as e:
+            logging.info(f"WebSocket connection error: {e}")
+            reconnect_to_websocket()
+
+# MQTT Handlers
+def on_mqtt_connect(client, userdata, flags, rc):
+    """Handles successful MQTT connection."""
+    logging.info("Connected to MQTT broker!")
+    client.subscribe(MQTT_TOPIC_FACE_TRIGGER)
+
+def on_mqtt_message(client, userdata, msg):
+    """Handles received MQTT messages."""
+    logging.info(f"Received MQTT message on {msg.topic}: {msg.payload.decode()}")
+
+if __name__ == "__main__":
+    # Set up MQTT client
+    mqtt_client.on_connect = on_mqtt_connect
+    mqtt_client.on_message = on_mqtt_message
+    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+    # Run MQTT loop in a separate thread
+    mqtt_thread = threading.Thread(target=mqtt_client.loop_forever, daemon=True)
+    mqtt_thread.start()
+
+    # Start WebSocket client
+    start_websocket_client()

@@ -1,0 +1,12 @@
+Bridge mqtt:broker:mqttHome "MQTT Mosquitto Broker" [ 
+    host="localhost", 
+    secure=false, 
+    port=1883,
+    qos=0,
+    keep_alive_time=30000,
+    reconnect_time=60000
+] {
+    Thing topic mqttHomeTopic "MQTT for Home" {
+        Type string : DetectedPersonEvent "DetectedPersonEvent" [stateTopic="openhab/trigger/DetectedPersonEvent", trigger=true]
+    }
+}

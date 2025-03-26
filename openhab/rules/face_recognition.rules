@@ -1,6 +1,12 @@
 rule "Run Face Recognition"
 when
-    Item StreamAuthorization changed to ON
+    Item StartFaceRecognition received command
 then
-    executeCommandLine("python3 /etc/openhab/scripts/face_recognition.py")
+    if (receivedCommand == ON) {
+        executeCommandLine("python3", "/etc/openhab/scripts/face_recognition.py", "&")
+        logInfo("StartFaceRecognition", "Face recognition authorized!")
+    } else {
+        executeCommandLine("pkill", "-f", "/etc/openhab/scripts/face_recognition.py")
+        logInfo("StartFaceRecognition", "Face recognition stopped!")
+    }
 end

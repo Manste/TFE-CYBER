@@ -1,6 +1,0 @@
-websockets
-requests
-numpy
-keras-facenet
-tensorflow
-python-dotenv
