@@ -8,15 +8,19 @@ import paho.mqtt.client as mqtt
 import threading
 from mtcnn.mtcnn import MTCNN
 from keras_facenet import FaceNet
+import base64
 
 import os
 import time
 import logging
 
+WEBSOCKET_RELAY_SERVER_IP = "localhost"
+WEBSOCKET_RELAY_SERVER_PORT = 8765
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # Configure logging to a file
-logging.basicConfig(filename="face_script.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(filename="/tmp/face_script.log", level=logging.INFO, format="%(asctime)s - %(message)s")
 
 logging.info("Face recognition script started!")
 
@@ -69,7 +73,7 @@ def recognize_face(frame):
         # Outlier detection
         is_known = loaded_one_class_svm.predict([embedding])[0]  # 1 = known, -1 = unknown
 
-        if pred_prob >= 50:
+        if pred_prob >= 0.7:
             persons.append((person_ids.get(pred_label, 'Unknown'), frame))
         else:
             persons.append(('Unknown', frame))
@@ -88,19 +92,22 @@ def save_images(faces):
 def send_to_openhab(person_list):
     """Sends recognized person data to OpenHAB via MQTT."""
     logging.info(f"Sending to OpenHAB: {person_list}")
-    mqtt_client.publish(MQTT_TOPIC_FACE_TRIGGER, json.dumps(person_list))
+    mqtt_client.publish(MQTT_TOPIC_FACE_TRIGGER, person_list)
 
 # WebSocket Handlers
 def on_websocket_message(ws, message):
     """Processes incoming WebSocket messages (image frames)."""
-    np_frame = np.frombuffer(message, dtype=np.uint8)
+    data = json.loads(message)
+    frame_cnt, frame = data["count"], data["image"] 
+    frame = base64.b64decode(frame)
+    np_frame = np.frombuffer(frame, dtype=np.uint8)
     frame = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
     recognized_faces = recognize_face(frame)
 
     if recognized_faces:
         persons = [name for name, _ in recognized_faces]
         save_images(recognized_faces)
-        send_to_openhab(persons)
+        send_to_openhab(f"{frame_cnt}:{json.dumps(persons)}")
         print(persons)
 
 def on_websocket_error(ws, error):
@@ -125,7 +132,7 @@ def reconnect_to_websocket():
         time.sleep(delay)
         try:
             ws = websocket.WebSocketApp(
-                "ws://localhost:8765",
+                f"ws://{WEBSOCKET_RELAY_SERVER_IP}:{WEBSOCKET_RELAY_SERVER_PORT}",
                 on_message=on_websocket_message,
                 on_error=on_websocket_error,
                 on_close=on_websocket_close
@@ -142,7 +149,7 @@ def start_websocket_client():
     while True:
         try:
             ws = websocket.WebSocketApp(
-                "ws://localhost:8765",
+                f"ws://{WEBSOCKET_RELAY_SERVER_IP}:{WEBSOCKET_RELAY_SERVER_PORT}",
                 on_message=on_websocket_message,
                 on_error=on_websocket_error,
                 on_close=on_websocket_close

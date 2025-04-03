@@ -7,6 +7,9 @@ Bridge mqtt:broker:mqttHome "MQTT Mosquitto Broker" [
     reconnect_time=60000
 ] {
     Thing topic mqttHomeTopic "MQTT for Home" {
+        Type string : DetectedMovementEvent "DetectedMovementEvent" [stateTopic="openhab/trigger/DetectedMovementEvent", trigger=true]
         Type string : DetectedPersonEvent "DetectedPersonEvent" [stateTopic="openhab/trigger/DetectedPersonEvent", trigger=true]
+        Type string : DetectedActionEvent "DetectedActionEvent" [stateTopic="openhab/trigger/DetectedActionEvent", trigger=true]
+        
     }
 }

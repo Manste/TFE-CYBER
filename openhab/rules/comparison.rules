@@ -1,33 +1,91 @@
-rule "Handle Recognized Person Event"
-when
-    Channel "mqtt:topic:mqttHome:mqttHomeTopic:DetectedPersonEvent" triggered
-then
-    val personsListString = receivedEvent
-    logInfo("FaceRecognition", "Recognized Persons: " + personsListString)
+import java.util.ArrayList
 
-    val unauthorizedPersons = newArrayList("Unknown", "Manuelle")
-    var unauthorized = false
-    var trimmedPerson = ""
+var ArrayList<String> unauthorizedPersonsList = new ArrayList<String>()
+val lastPersonDetectedFrame = -1
+val lastActionDetectedFrame = -1
+val lastAction = ""
+val int maxFrameDifference = 5 // Maximum allowed frame difference
+
+val unauthorizedPersons = newArrayList("Unknown", "Manuelle")
+val unauthorizedAction = "open"
+
+rule "Handle Recognized Person and Action Event"
+when
+    Channel "mqtt:topic:mqttHome:mqttHomeTopic:DetectedPersonEvent" triggered or
+    Channel "mqtt:topic:mqttHome:mqttHomeTopic:DetectedActionEvent" triggered
+then
+    val eventSource = triggeringChannel // Identify event source
+    val eventData = receivedEvent // Get event data
+    logInfo("FaceRecognition", "Raw Event Received: " + eventData + " from " + eventSource)
 
     try {
-        // Split the received persons list string (assuming it's like ["Unknown"])
-        val personList = personsListString.replace("[", "").replace("]", "").replace("\"", "").split(",")
-        //logInfo("FaceRecognition", "Parsed Persons: " + personList.toString()) //for debugging
+        val parts = eventData.split(":")
+        if (parts.length < 2) {
+            logWarn("FaceRecognition", "Invalid event format: " + eventData)
+            return
+        }
 
-        // Check if any unauthorized person is detected
-        for (person : personList) {
-            trimmedPerson = person.trim
-            if (unauthorizedPersons.contains(trimmedPerson)) {
-                logWarn("FaceRecognition", "Unauthorized person detected: " + trimmedPerson)
-                unauthorized = true
+        val frameCounter = Integer::parseInt(parts.get(0).trim) // Extract frame counter
+        val eventInfo = parts.get(1).trim // Extract event details
+
+        if (eventSource.contains("DetectedPersonEvent")) {
+            // Process Person Event
+            val personList = eventInfo.replace("[", "").replace("]", "").replace("\"", "").split(",")
+            for (person : personList) {
+                val trimmedPerson = person.trim
+                if (unauthorizedPersons.contains(trimmedPerson)) {
+                    logWarn("FaceRecognition", "Unauthorized person detected: " + trimmedPerson + " at frame " + frameCounter)
+
+                    val frameDifference = frameCounter - lastActionDetectedFrame
+                    // Only store if it's within 5 frames of the last action event
+                    if (lastActionDetectedFrame == -1 || frameDifference >= maxFrameDifference) {
+                        unauthorizedPersonsList.add(trimmedPerson)
+
+                        if (lastAction == unauthorizedAction && frameDifference >= maxFrameDifference) {
+                            logWarn("FaceRecognition", "Unauthorized person & unauthorized action detected within " + frameDifference + " frames! Triggering alarm.")
+                            executeCommandLine("python3", "/etc/openhab/scripts/alarm.py ", trimmedPerson, "&")
+
+                            // Reset only after triggering
+                            unauthorizedPersonsList.clear()
+                            lastPersonDetectedFrame = -1
+                            lastAction = ""
+                            lastActionDetectedFrame = -1
+                        }
+                    } else {
+                        logInfo("FaceRecognition", "Person detected too far from last action. Resetting stored persons.")
+                        unauthorizedPersonsList.clear()
+                        unauthorizedPersonsList.add(trimmedPerson)
+                    }
+                    lastPersonDetectedFrame = frameCounter
+                }
+            }
+        } else if (eventSource.contains("DetectedActionEvent")) {
+            // Process Action Event
+            if (frameCounter >= lastActionDetectedFrame && eventInfo != lastAction) {
+                logWarn("ActionRecognition", "New action detected: " + eventInfo + " at frame " + frameCounter)
+
+                if (lastAction == unauthorizedAction && unauthorizedPersonsList.size > 0) {
+                    val frameDifference = frameCounter - lastPersonDetectedFrame
+                    if (frameDifference >= 0 && frameDifference <= maxFrameDifference) {
+                        logWarn("ActionRecognition", "Unauthorized person & unauthorized action detected within " + frameDifference + " frames! Triggering alarm.")
+                        executeCommandLine("python3", "/etc/openhab/scripts/alarm.py ", lastUnauthorizedPerson, "&")
+
+                        // Reset only after triggering
+                        unauthorizedPersonsList.clear()
+                        lastPersonDetectedFrame = -1
+                        
+                    } else {
+                        logInfo("ActionRecognition", "Action detected but no matching recent unauthorized person. Resetting stored person data.")
+                        unauthorizedPersonsList.clear()
+                        lastPersonDetectedFrame = -1
+                    }
+                }
+                lastAction = eventInfo
+                lastActionDetectedFrame = frameCounter
             }
         }
-
-        if (unauthorized) {
-            // Trigger an alarm
-            executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", trimmedPerson, "&")
-        }
+        logError("Comparison.rules", "Action: " lastActionDetectedFrame + " person: " + lastPersonDetectedFrame + " AName: " + lastAction + " Persons: " + unauthorizedPersonsList.toString() )
     } catch (Exception e) {
-        logError("FaceRecognition", "Error parsing JSON or executing command: " + e.message)
+        logError("FaceRecognition", "Error processing event: " + e.message)
     }
 end
