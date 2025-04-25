@@ -141,7 +141,7 @@ const handleUsernameChange = (e: any) => {
               id="username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handleUsernameChange}
               required
               className="mt-1 block w-full px-4 py-2 text-white bg-gray-800 border border-gray-700 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />

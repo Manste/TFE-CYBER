@@ -1,8 +1,5 @@
 # Why OpenHAB Doesn't Support websockets Library?
-# --> OpenHAB executes Python scripts using Jython (if using legacy rules) or via executeCommandLine (if calling external Python scripts)
-# --> Jython (Python 2.7) does not support websocket-client. You need Python 3, but OpenHAB doesn’t run scripts in a full Python environment
-# --> OpenHAB does not include external Python packages like websocket-client by default
-# --> If OpenHAB runs scripts in a restricted user environment (like openhab), it may not have access to system-wide Python libraries
+# --> OpenHAB runs scripts in a restricted user environment (like openhab), it may not have access to system Python libraries
 # To Ensure OpenHAB can use the libraries, run this commands:
 # sudo -u openhab pip3 install -r requirements.txt  --user
 # Because OpenHAB runs under a different user (openhab), this command will install it in the user's environment
