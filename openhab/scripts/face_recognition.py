@@ -82,12 +82,13 @@ def recognize_face(frame):
 
 def save_images(faces, frame_cnt):
     """Saves detected faces as images and returns their paths."""
-    image_paths = {}
-    for name, face_frame in faces:
-        img_path = f"/tmp/images/{name}_{frame_cnt}.jpg"
-        cv2.imwrite(img_path, face_frame)
-        image_paths[name] = img_path
-    return image_paths
+    if frame_cnt % 10 != 0:
+        image_paths = {}
+        for name, face_frame in faces:
+            img_path = f"/tmp/images/{name}_{frame_cnt}.jpg"
+            cv2.imwrite(img_path, face_frame)
+            image_paths[name] = img_path
+        return image_paths
 
 def send_to_openhab(person_list):
     """Sends recognized person data to OpenHAB via MQTT."""

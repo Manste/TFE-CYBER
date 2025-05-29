@@ -8,5 +8,8 @@ sudo cp ./rules/* /etc/openhab/rules/
 sudo cp ./items/* /etc/openhab/items/
 sudo cp ./things/* /etc/openhab/things/
 
-sudo mkdir /tmp/images/ -p
-sudo rm -rf /tmp/images/*
+sudo rm -rf /tmp/*.log
+rm -rf /tmp/images/*
+mkdir /tmp/images/ -p
+sudo chown openhab /tmp/images
+ 

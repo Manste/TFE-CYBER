@@ -66,6 +66,8 @@ def on_websocket_message(ws, message):
     """Processes incoming WebSocket messages (image frames)."""
     data = json.loads(message)
     frame_cnt, frame = data["count"], data["image"]
+    if frame_cnt % 5 != 0:
+        return
     frame = base64.b64decode(frame)
 
     np_frame = np.frombuffer(frame, dtype=np.uint8)

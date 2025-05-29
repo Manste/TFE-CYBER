@@ -41,9 +41,9 @@ then
                     // Store detected person
                     unauthorizedPersonsList.add(trimmedPerson)
                     lastUnauthorizedPerson = trimmedPerson
-                    lastPersonDetectedFrame = frameCounter
                 }
             }
+            lastPersonDetectedFrame = frameCounter
 
             // Check if an unauthorized action was already buffered
             val frameDifference = lastActionDetectedFrame - frameCounter
@@ -71,10 +71,13 @@ then
                 unauthorizedPersonsList.clear()
                 lastPersonDetectedFrame = -1
                 lastUnauthorizedPerson = ""
-            } 
-
-            lastAction = eventInfo
-            lastActionDetectedFrame = frameCounter
+                lastAction = ""
+                lastActionDetectedFrame = -1
+            } else {
+                lastAction = eventInfo
+                lastActionDetectedFrame = frameCounter
+            }
+            
         }
 
         logInfo("Comparison.rules", "Action Frame: " + lastActionDetectedFrame + 
