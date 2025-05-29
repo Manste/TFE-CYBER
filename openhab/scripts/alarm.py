@@ -13,14 +13,9 @@ logging.info("Alarm script started!")
 # Cloud API endpoint
 CLOUD_API_URL = "http://localhost:5000/api/alarm"
 
-load_dotenv()
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
-HASHING_KEY = os.getenv('HASHING_KEY')
-
-
 def send_alert(person_name):
     """Sends an alert with the person's image & name to the cloud."""
-    image_path = f"/tmp/{person_name}.jpg"
+    image_path = f"/tmp/images/{person_name}.jpg"
     if not os.path.exists(image_path):
         print(f"Error: Image file '{image_path}' not found!")
         return

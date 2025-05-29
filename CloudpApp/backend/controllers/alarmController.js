@@ -1,8 +1,6 @@
-require('dotenv').config(); // Load .env variables
 const jwt = require("jsonwebtoken");
 const Alarm = require("../models/alarms");
 const speakeasy = require('speakeasy');
-const logger = require("../logging/logger");
 
 //@desc get all unread alarms
 //@route POST /api/alarm

@@ -73,18 +73,18 @@ def recognize_face(frame):
         # Outlier detection
         is_known = loaded_one_class_svm.predict([embedding])[0]  # 1 = known, -1 = unknown
 
-        if pred_prob >= 0.7:
+        if is_known:
             persons.append((person_ids.get(pred_label, 'Unknown'), frame))
         else:
             persons.append(('Unknown', frame))
 
     return persons
 
-def save_images(faces):
+def save_images(faces, frame_cnt):
     """Saves detected faces as images and returns their paths."""
     image_paths = {}
     for name, face_frame in faces:
-        img_path = f"/tmp/{name}.jpg"
+        img_path = f"/tmp/images/{name}_{frame_cnt}.jpg"
         cv2.imwrite(img_path, face_frame)
         image_paths[name] = img_path
     return image_paths
@@ -106,7 +106,7 @@ def on_websocket_message(ws, message):
 
     if recognized_faces:
         persons = [name for name, _ in recognized_faces]
-        save_images(recognized_faces)
+        save_images(recognized_faces, frame_cnt)
         send_to_openhab(f"{frame_cnt}:{json.dumps(persons)}")
         print(persons)
 

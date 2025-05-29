@@ -32,7 +32,7 @@ MQTT_TOPIC_ACTION_TRIGGER = "openhab/trigger/DetectedActionEvent"
 mqtt_client = mqtt.Client()
 
 # Load Action Recognition Model
-LRCN_model = load_model('/etc/openhab/scripts/models/LRCN_model___Date_Time_2025_02_20__13_50_05___Loss_0.11162082850933075___Accuracy_1.0.h5')
+LRCN_model = load_model('/etc/openhab/scripts/models/LRCN.h5')
 
 # Action Recognition Settings
 SEQUENCE_LENGTH = 20
@@ -52,8 +52,7 @@ def detect_action(frame):
         predicted_class_name = CLASSES_LIST[predicted_label]
         predicted_labels_probability = round(predicted_labels_probabilities[predicted_label] * 100, 2)
 
-        if predicted_labels_probability >= 0.8:
-            return predicted_class_name
+        return predicted_class_name
 
     return "Unknown"
 

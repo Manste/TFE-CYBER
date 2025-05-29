@@ -1,4 +1,3 @@
-const logger = require("../logging/logger")
 const router = require('express').Router()
 const jwt = require('jsonwebtoken')
 const {
@@ -6,8 +5,6 @@ const {
     updateAlarm,
   } = require("../controllers/alarmController");
 const Alarm = require('../models/alarms')
-const validateToken = require("../middleware/validateTokenHandler")
-
 router.get('', fetchAlarm)
 
 router.put('/:id', updateAlarm)

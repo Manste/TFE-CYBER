@@ -49,7 +49,8 @@ then
             val frameDifference = lastActionDetectedFrame - frameCounter
             if (lastAction == unauthorizedAction && frameDifference >= 0 && frameDifference <= maxFrameDifference && unauthorizedPersons.size() > 0) {
                 logWarn("AlarmModule", "Unauthorized action **already happened before** and now matching person detected! Triggering alarm.")
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
+                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
 
                 // Reset after triggeringeventData
                 unauthorizedPersonsList.clear()
@@ -63,7 +64,8 @@ then
             val frameDifference = frameCounter - lastPersonDetectedFrame
             if ( unauthorizedPersonsList.size > 0 && frameDifference >= 0 && frameDifference <= maxFrameDifference && eventData == unauthorizedAction) {
                 logWarn("ActionRecognition", "Unauthorized action detected & recently matched with unauthorized person! Triggering alarm.")
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
+                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
 
                 // Reset after triggering
                 unauthorizedPersonsList.clear()
