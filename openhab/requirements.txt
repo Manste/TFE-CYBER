@@ -6,9 +6,9 @@
 websockets
 websocket-client
 requests
+numpy==1.26.4
 keras-facenet
 scipy
-numpy
 joblib
 tensorflow
 python-dotenv

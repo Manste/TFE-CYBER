@@ -41,16 +41,15 @@ then
                     // Store detected person
                     unauthorizedPersonsList.add(trimmedPerson)
                     lastUnauthorizedPerson = trimmedPerson
+                    lastPersonDetectedFrame = frameCounter
                 }
             }
-            lastPersonDetectedFrame = frameCounter
 
             // Check if an unauthorized action was already buffered
             val frameDifference = lastActionDetectedFrame - frameCounter
             if (lastAction == unauthorizedAction && frameDifference >= 0 && frameDifference <= maxFrameDifference && unauthorizedPersons.size() > 0) {
                 logWarn("AlarmModule", "Unauthorized action **already happened before** and now matching person detected! Triggering alarm.")
-                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
 
                 // Reset after triggeringeventData
                 unauthorizedPersonsList.clear()
@@ -64,20 +63,16 @@ then
             val frameDifference = frameCounter - lastPersonDetectedFrame
             if ( unauthorizedPersonsList.size > 0 && frameDifference >= 0 && frameDifference <= maxFrameDifference && eventData == unauthorizedAction) {
                 logWarn("ActionRecognition", "Unauthorized action detected & recently matched with unauthorized person! Triggering alarm.")
-                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
 
                 // Reset after triggering
                 unauthorizedPersonsList.clear()
                 lastPersonDetectedFrame = -1
                 lastUnauthorizedPerson = ""
-                lastAction = ""
-                lastActionDetectedFrame = -1
-            } else {
-                lastAction = eventInfo
-                lastActionDetectedFrame = frameCounter
-            }
-            
+            } 
+
+            lastAction = eventInfo
+            lastActionDetectedFrame = frameCounter
         }
 
         logInfo("Comparison.rules", "Action Frame: " + lastActionDetectedFrame + 

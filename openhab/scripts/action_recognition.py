@@ -52,7 +52,8 @@ def detect_action(frame):
         predicted_class_name = CLASSES_LIST[predicted_label]
         predicted_labels_probability = round(predicted_labels_probabilities[predicted_label] * 100, 2)
 
-        return predicted_class_name
+        if predicted_labels_probability > 75:
+            return predicted_class_name + predicted_labels_probability
 
     return "Unknown"
 
@@ -66,8 +67,6 @@ def on_websocket_message(ws, message):
     """Processes incoming WebSocket messages (image frames)."""
     data = json.loads(message)
     frame_cnt, frame = data["count"], data["image"]
-    if frame_cnt % 5 != 0:
-        return
     frame = base64.b64decode(frame)
 
     np_frame = np.frombuffer(frame, dtype=np.uint8)

@@ -39,10 +39,10 @@ detector = MTCNN()
 # Load models
 loaded_svc_model = joblib.load('/etc/openhab/scripts/models/svc_model.pkl')
 loaded_one_class_svm = joblib.load('/etc/openhab/scripts/models/one_class_svm_model.pkl')
-
+X_train = np.load('/etc/openhab/scripts/models/EMBEDDED_3classes.npz.npy')
 # Person ID mapping
 person_ids = {
-    1: "Annalise Keating",
+    1: "Annalise",
     2: "Manuelle"
 }
 
@@ -73,7 +73,12 @@ def recognize_face(frame):
         # Outlier detection
         is_known = loaded_one_class_svm.predict([embedding])[0]  # 1 = known, -1 = unknown
 
-        if is_known:
+        # Distance-based rejection
+        known_embeddings = X_train
+        distances = np.linalg.norm(known_embeddings - embedding, axis=1)
+        min_distance = np.min(distances)
+
+        if pred_prob > 0.8 and is_known == -1 and min_distance <= 0.85:
             persons.append((person_ids.get(pred_label, 'Unknown'), frame))
         else:
             persons.append(('Unknown', frame))
