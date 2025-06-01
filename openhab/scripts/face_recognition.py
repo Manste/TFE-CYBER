@@ -78,7 +78,7 @@ def recognize_face(frame):
         distances = np.linalg.norm(known_embeddings - embedding, axis=1)
         min_distance = np.min(distances)
 
-        if pred_prob > 0.8 and is_known == -1 and min_distance <= 0.85:
+        if pred_prob > 0.9 and is_known == -1 and min_distance <= 0.85:
             persons.append((person_ids.get(pred_label, 'Unknown'), frame))
         else:
             persons.append(('Unknown', frame))

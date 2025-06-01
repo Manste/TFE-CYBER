@@ -50,10 +50,10 @@ def detect_action(frame):
         predicted_labels_probabilities = LRCN_model.predict(np.expand_dims(frames_queue, axis=0))[0]
         predicted_label = np.argmax(predicted_labels_probabilities)
         predicted_class_name = CLASSES_LIST[predicted_label]
-        predicted_labels_probability = round(predicted_labels_probabilities[predicted_label] * 100, 2)
+        predicted_labels_probability = round(predicted_labels_probabilities[predicted_label], 2)
 
-        if predicted_labels_probability > 75:
-            return predicted_class_name + predicted_labels_probability
+        if predicted_labels_probability > 0.8:
+            return predicted_class_name
 
     return "Unknown"
 

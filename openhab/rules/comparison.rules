@@ -41,15 +41,16 @@ then
                     // Store detected person
                     unauthorizedPersonsList.add(trimmedPerson)
                     lastUnauthorizedPerson = trimmedPerson
-                    lastPersonDetectedFrame = frameCounter
                 }
             }
+            lastPersonDetectedFrame = frameCounter
 
             // Check if an unauthorized action was already buffered
-            val frameDifference = lastActionDetectedFrame - frameCounter
-            if (lastAction == unauthorizedAction && frameDifference >= 0 && frameDifference <= maxFrameDifference && unauthorizedPersons.size() > 0) {
+            val frameDifference =  Math.abs(lastActionDetectedFrame - frameCounter)
+            if (lastAction == unauthorizedAction && frameDifference <= maxFrameDifference && unauthorizedPersonsList.size() > 0) {
                 logWarn("AlarmModule", "Unauthorized action **already happened before** and now matching person detected! Triggering alarm.")
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
+                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
 
                 // Reset after triggeringeventData
                 unauthorizedPersonsList.clear()
@@ -59,26 +60,32 @@ then
                 lastActionDetectedFrame = -1
             }
         } else if (eventSource.contains("DetectedActionEvent")) {
+            lastActionDetectedFrame = frameCounter
             // Process Action Event
-            val frameDifference = frameCounter - lastPersonDetectedFrame
-            if ( unauthorizedPersonsList.size > 0 && frameDifference >= 0 && frameDifference <= maxFrameDifference && eventData == unauthorizedAction) {
+            val frameDifference =  Math.abs(frameCounter - lastPersonDetectedFrame)
+            if (unauthorizedPersonsList.size > 0 && frameDifference <= maxFrameDifference && eventInfo == unauthorizedAction) {
                 logWarn("ActionRecognition", "Unauthorized action detected & recently matched with unauthorized person! Triggering alarm.")
-                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", lastUnauthorizedPerson, "&")
+                val person = lastUnauthorizedPerson + '_' + lastPersonDetectedFrame
+                executeCommandLine("python3", "/etc/openhab/scripts/alarm.py", person, "&")
 
                 // Reset after triggering
                 unauthorizedPersonsList.clear()
                 lastPersonDetectedFrame = -1
                 lastUnauthorizedPerson = ""
+                lastAction = ""
             } 
-
-            lastAction = eventInfo
-            lastActionDetectedFrame = frameCounter
+            if (eventInfo == unauthorizedAction) {
+                lastAction = eventInfo
+            }
+            
         }
 
         logInfo("Comparison.rules", "Action Frame: " + lastActionDetectedFrame + 
             " | Person Frame: " + lastPersonDetectedFrame + 
             " | Last Action: " + lastAction + 
-            " | Persons: " + unauthorizedPersonsList.toString())
+            " | Persons: " + unauthorizedPersonsList.toString() +
+            " | Difference: " + Math.abs(lastActionDetectedFrame - lastPersonDetectedFrame) + 
+            " | Max Allowed: " + maxFrameDifference)
     } catch (Exception e) {
         logError("FaceRecognition", "Error processing event: " + e.message)
     }
